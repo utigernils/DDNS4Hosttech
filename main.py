@@ -47,10 +47,14 @@ class Main:
             print(f"Record '{self.subdomain}' found with ID: {self.record_id}")
 
         while True:
+            self.current_ip = self.check_record_ip(self.zone_id, self.record_id)
+
             if self.current_ip != self.public_ip.get():
                 print("Public IP has changed, updating DNS record...")
                 self.update_record()
                 self.current_ip = self.public_ip.get()
+            else:
+                print(f"Public IP of the DNS is still '{self.current_ip}' and has not changed, no update needed.")
             time.sleep(30)
 
     def check_domain(self, domain):
@@ -69,6 +73,16 @@ class Main:
         for record in records:
             if isinstance(record, dict) and record.get('name') == subdomain and record.get('type') == 'A':
                 return record.get('id')
+        return None
+
+    def check_record_ip(self, zone_id, record_id):
+        response = self.get_api.get_record(zone_id, record_id)
+        data = response
+        if isinstance(data, dict):
+            if 'ipv4' in data:
+                return data['ipv4']
+            if 'data' in data and isinstance(data['data'], dict) and 'ipv4' in data['data']:
+                return data['data']['ipv4']
         return None
 
     def update_record(self):

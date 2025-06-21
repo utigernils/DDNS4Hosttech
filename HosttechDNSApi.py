@@ -25,6 +25,12 @@ class HosttechDNSAPI:
             response = requests.get(url, headers=self.parent.headers)
             return response
 
+        def get_record(self, zone_id, record_id):
+            """Get a specific DNS record by ID"""
+            url = f"{self.parent.base_url}/zones/{zone_id}/records/{record_id}"
+            response = requests.get(url, headers=self.parent.headers)
+            return response.json()
+
     class Set:
         def __init__(self, parent):
             self.parent = parent

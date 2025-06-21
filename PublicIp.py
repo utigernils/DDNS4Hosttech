@@ -2,14 +2,14 @@ import requests
 
 class PublicIp:
     def __init__(self):
-        self.base_url = "https://api.my-ip.io/v2"
+        self.base_url = "https://api.ipify.org"
         self.headers = {
             "Content-Type": "application/json"
         }
 
     def get(self):
         """Get current public IP address"""
-        url = f"{self.base_url}/ip.json"
+        url = f"{self.base_url}?format=json"
         try:
             response = requests.get(url, headers=self.headers, timeout=5)
             response.raise_for_status()
