@@ -7,10 +7,15 @@ class PublicIp:
             "Content-Type": "application/json"
         }
 
-
     def get(self):
         """Get current public IP address"""
         url = f"{self.base_url}/ip.json"
-        response = requests.get(url, headers=self.headers)
-        return response.json().get('ip', None)
-
+        try:
+            response = requests.get(url, headers=self.headers, timeout=5)
+            response.raise_for_status()
+            try:
+                return response.json().get('ip', None)
+            except ValueError:
+                return None
+        except requests.RequestException:
+            return None
