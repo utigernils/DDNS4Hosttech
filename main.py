@@ -1,27 +1,12 @@
 import HosttechDNSApi
 import PublicIp
+
+import time
+
 import os
 from dotenv import load_dotenv
 
 class Main:
-    def check_domain(self, domain):
-        response = self.get_api.list_zones()
-        data = response.json()
-        zones = data.get("zones") or data.get("data") or data  # Fallback falls Struktur anders ist
-        for zone in zones:
-            if isinstance(zone, dict) and zone.get('name') == domain:
-                return zone.get('id')
-        return None
-
-    def check_record(self, zone_id, subdomain):
-        response = self.get_api.list_records(zone_id)
-        data = response.json()
-        records = data.get("records") or data.get("data") or data
-        for record in records:
-            if isinstance(record, dict) and record.get('name') == subdomain and record.get('type') == 'A':
-                return record.get('id')
-        return None
-
     def __init__(self):
         load_dotenv()
 
@@ -37,10 +22,63 @@ class Main:
 
         self.public_ip = PublicIp.PublicIp()
 
+        self.current_ip = "0.0.0.0"
+
         self.zone_id = self.check_domain(self.domain)
+
+        if not self.zone_id:
+            print(f"Zone {self.domain} not found.")
+            return
+        else:
+            print(f"Zone '{self.domain}' found with ID: {self.zone_id}")
+
         self.record_id = self.check_record(self.zone_id, self.subdomain)
 
-        print(self.record_id)
+        if not self.record_id:
+            print(f"Record '{self.subdomain}' not found in zone '{self.domain}'. Creating new record.")
+            print(self.set_api.create_record(self.zone_id, self.subdomain, self.public_ip.get(), type="A", ttl=self.ttl))
+            self.record_id = self.check_record(self.zone_id, self.subdomain)
+            if not self.record_id:
+                print(f"Failed to create record '{self.subdomain}' in zone '{self.domain}'.")
+                return
+            else:
+                print(f"Record '{self.subdomain}' created successfully in zone '{self.domain}'.")
+        else:
+            print(f"Record '{self.subdomain}' found with ID: {self.record_id}")
+
+        while True:
+            if self.current_ip != self.public_ip.get():
+                print("Public IP has changed, updating DNS record...")
+                self.update_record()
+                self.current_ip = self.public_ip.get()
+            time.sleep(30)
+
+    def check_domain(self, domain):
+        response = self.get_api.list_zones()
+        data = response.json()
+        zones = data.get("zones") or data.get("data") or data
+        for zone in zones:
+            if isinstance(zone, dict) and zone.get('name') == domain:
+                return zone.get('id')
+        return None
+
+    def check_record(self, zone_id, subdomain):
+        response = self.get_api.list_records(zone_id)
+        data = response.json()
+        records = data.get("records") or data.get("data") or data
+        for record in records:
+            if isinstance(record, dict) and record.get('name') == subdomain and record.get('type') == 'A':
+                return record.get('id')
+        return None
+
+    def update_record(self):
+        ipv4 = self.public_ip.get()
+        if not ipv4:
+            print("Failed to retrieve public IP address.")
+            return
+
+        self.set_api.update_record(self.zone_id, self.record_id, ipv4, ttl=self.ttl)
+        print(f"Record '{self.subdomain}' updated successfully with IP {ipv4} in zone '{self.domain}'.")
 
 main = Main()
 
