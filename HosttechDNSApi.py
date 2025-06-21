@@ -17,13 +17,13 @@ class HosttechDNSAPI:
             """Get all DNS zones"""
             url = f"{self.parent.base_url}/zones"
             response = requests.get(url, headers=self.parent.headers)
-            return response.json()
+            return response
 
         def list_records(self, zone_id):
             """Get all DNS records for a specific zone"""
             url = f"{self.parent.base_url}/zones/{zone_id}/records"
             response = requests.get(url, headers=self.parent.headers)
-            return response.json()
+            return response
 
     class Set:
         def __init__(self, parent):
